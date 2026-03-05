@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discrete Math Toolkit – Partition & Equivalence Relation Visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ========================================
+           CSS VARIABLES & THEME
+           ======================================== */
+        :root {
+            --bg-primary: #0f0f1a;
+            --bg-card: rgba(255, 255, 255, 0.03);
+            --border-card: rgba(255, 255, 255, 0.08);
+            --accent-primary: #00d4aa;
+            --accent-secondary: #7c3aed;
+            --accent-tertiary: #f59e0b;
+            --text-primary: #e8e8ed;
+            --text-secondary: #8b8b9a;
+            --text-muted: #5a5a6e;
+            --error: #ff6b6b;
+            --success: #00d4aa;
+            --glass-bg: rgba(255, 255, 255, 0.05);
+            --shadow-color: rgba(0, 212, 170, 0.15);
+        }
+
+        [data-theme="light"] {
+            --bg-primary: #f0f2f5;
+            --bg-card: rgba(255, 255, 255, 0.7);
+            --border-card: rgba(0, 0, 0, 0.08);
+            --text-primary: #1a1a2e;
+            --text-secondary: #4a4a5a;
+            --text-muted: #7a7a8a;
+            --glass-bg: rgba(0, 0, 0, 0.03);
+            --shadow-color: rgba(0, 0, 0, 0.1);
+        }
+
+        /* ========================================
+           RESET & BASE STYLES
+           ======================================== */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            overflow-x: hidden;
+            transition: background 0.4s ease, color 0.4s ease;
+        }
+
+        /* ========================================
+           BACKGROUND EFFECTS
+           ======================================== */
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(100px);
+            opacity: 0.4;
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .bg-orb-1 {
+            width: 500px;
+            height: 500px;
+            background: var(--accent-primary);
+            top: -200px;
+            left: -200px;
+            animation: float 20s ease-in-out infinite;
+        }
+
+        .bg-orb-2 {
+            width: 400px;
+            height: 400px;
+            background: var(--accent-secondary);
+            bottom: -150px;
+            right: -150px;
+            animation: float 25s ease-in-out infinite reverse;
+        }
+
+        .bg-orb-3 {
+            width: 300px;
+            height: 300px;
+            background: var(--accent-tertiary);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 15s ease-in-out infinite;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0); }
+            50% { transform: translate(30px, 30px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.2; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 0.3; transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        /* ========================================
+           LAYOUT
+           ======================================== */
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 24px;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* ========================================
+           HEADER
+           ======================================== */
+        header {
+            text-align: center;
+            padding: 32px 0 40px;
+            position: relative;
+        }
+
+        .logo {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+
+        .logo-icon {
+            width: 48px;
+            height: 48px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 1.2rem;
+            color: white;
+            box-shadow: 0 8px 32px var(--shadow-color);
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, var(--text-primary), var(--accent-primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 4px;
+        }
+
+        /* ========================================
+           THEME TOGGLE
+           ======================================== */
+        .theme-toggle {
+            position: absolute;
+            top: 24px;
+            right: 0;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-card);
+            border-radius: 50px;
+            padding: 6px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle:hover {
+            border-color: var(--accent-primary);
+            box-shadow: 0 4px 20px var(--shadow-color);
+        }
+
+        .theme-toggle .icon {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+
+        .theme-toggle .icon.sun {
+            background: linear-gradient(135deg, #f59e0b, #fbbf24);
+            color: white;
+        }
+
+        .theme-toggle .icon.moon {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+        }
+
+        [data-theme="light"] .theme-toggle .icon.sun {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        [data-theme="light"] .theme-toggle .icon.moon {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+
+        [data-theme="dark"] .theme-toggle .icon.sun {
+            opacity: 0.3;
+            transform: scale(0.8);
+        }
+
+        [data-theme="dark"] .theme-toggle .icon.moon {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        /* ========================================
+           CARDS
+           ======================================== */
+        .card {
+            background: var(--bg-card);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--border-card);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 32px;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: rgba(255, 255, 255, 0.12);
+            box-shadow: 0 8px 40px var(--shadow-color);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .card-title {
+            font-size: 1.35rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .card-title .badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 4px 10px;
+            border-radius: 20px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+        }
+
+        /* ========================================
+           INPUTS
+           ======================================== */
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .input-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            flex: 1;
+            min-width: 150px;
+            padding: 14px 18px;
+            background: var(--glass-bg);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px rgba(0, 212, 170, 0.15);
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input[type="number"] {
+            max-width: 120px;
+        }
+
+        .input-hint {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* ========================================
+           BUTTONS
+           ======================================== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 14px 28px;
+            border: none;
+            border-radius: 12px;
+            font-family: 'Outfit', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
+            color: white;
+            box-shadow: 0 4px 20px rgba(0, 212, 170, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 8px 30px rgba(0, 212, 170, 0.4);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0) scale(0.98);
+        }
+
+        .btn-secondary {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-card);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--accent-primary);
+            background: rgba(0, 212, 170, 0.1);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        /* ========================================
+           ERROR MESSAGES
+           ======================================== */
+        .error-message {
+            background: rgba(255, 107, 107, 0.1);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+            color: var(--error);
+            padding: 12px 16px;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            margin-bottom: 20px;
+            display: none;
+            animation: shake 0.4s ease;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        /* ========================================
+           RESULTS
+           ======================================== */
+        .results-container {
+            margin-top: 24px;
+            display: none;
+        }
+
+        .results-container.show {
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+        .results-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+        }
+
+        .results-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            padding: 6px 14px;
+            background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(124, 58, 237, 0.15));
+            border-radius: 20px;
+            color: var(--accent-primary);
+        }
+
+        .result-block {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-card);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            line-height: 1.8;
+            overflow-x: auto;
+        }
+
+        .result-block:last-child {
+            margin-bottom: 0;
+        }
+
+        .partition-set {
+            color: var(--accent-primary);
+        }
+
+        .partition-block {
+            display: inline-block;
+            background: rgba(0, 212, 170, 0.1);
+            border: 1px solid rgba(0, 212, 170, 0.2);
+            border-radius: 8px;
+            padding: 4px 10px;
+            margin: 4px;
+        }
+
+        .equivalence-class {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 8px;
+        }
+
+        .equivalence-class:last-child {
+            margin-bottom: 0;
+        }
+
+        .class-label {
+            font-weight: 600;
+            min-width: 80px;
+        }
+
+        .class-members {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .member {
+            background: rgba(124, 58, 237, 0.15);
+            border: 1px solid rgba(124, 58, 237, 0.3);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--accent-secondary);
+        }
+
+        .math-notation {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px solid var(--border-card);
+        }
+
+        /* ========================================
+           EQUIVALENCE SECTION SPECIFIC
+           ======================================== */
+        .eq-class-0 { --class-color: #00d4aa; }
+        .eq-class-1 { --class-color: #7c3aed; }
+        .eq-class-2 { --class-color: #f59e0b; }
+        .eq-class-3 { --class-color: #ef4444; }
+        .eq-class-4 { --class-color: #3b82f6; }
+        .eq-class-5 { --class-color: #ec4899; }
+
+        .eq-class .class-label {
+            color: var(--class-color);
+        }
+
+        .eq-class .member {
+            background: color-mix(in srgb, var(--class-color) 15%, transparent);
+            border-color: color-mix(in srgb, var(--class-color) 30%, transparent);
+            color: var(--class-color);
+        }
+
+        /* ========================================
+           FOOTER
+           ======================================== */
+        footer {
+            text-align: center;
+            padding: 24px 0;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            margin-top: auto;
+        }
+
+        footer a {
+            color: var(--accent-primary);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        footer a:hover {
+            color: var(--accent-secondary);
+        }
+
+        /* ========================================
+           RESPONSIVE
+           ======================================== */
+        @media (max-width: 640px) {
+            .container {
+                padding: 16px;
+            }
+
+            header {
+                padding: 24px 0 32px;
+            }
+
+            h1 {
+                font-size: 1.4rem;
+            }
+
+            .theme-toggle {
+                top: 16px;
+                right: -8px;
+            }
+
+            .card {
+                padding: 24px;
+            }
+
+            .card-title {
+                font-size: 1.15rem;
+            }
+
+            .input-row {
+                flex-direction: column;
+            }
+
+            input[type="number"] {
+                max-width: 100%;
+            }
+
+            .btn-group {
+                flex-direction: column;
+            }
+
+            .btn {
+                width: 100%;
+            }
+
+            .result-block {
+                font-size: 0.9rem;
+                padding: 12px;
+            }
+        }
+
+        /* ========================================
+           UTILITY CLASSES
+           ======================================== */
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body data-theme="dark">
+    <!-- Background Effects -->
+    <div class="bg-orb bg-orb-1"></div>
+    <div class="bg-orb bg-orb-2"></div>
+    <div class="bg-orb bg-orb-3"></div>
+
+    <div class="container">
+        <!-- Header -->
+        <header>
+            <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">
+                <span class="icon sun">☀</span>
+                <span class="icon moon">☾</span>
+            </button>
+            <div class="logo">
+                <div class="logo-icon">∿</div>
+                <h1>Discrete Math Toolkit</h1>
+            </div>
+            <p class="subtitle">Partition & Equivalence Relation Visualizer</p>
+        </header>
+
+        <!-- Section 1: Partition Generator -->
+        <section class="card" id="partitionCard">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span>⚡</span>
+                    Partition Generator
+                    <span class="badge">Bell Numbers</span>
+                </h2>
+            </div>
+
+            <div class="input-group">
+                <label for="setInput">Enter elements separated by space</label>
+                <input type="text" id="setInput" placeholder="e.g., 1 2 3 4 or a b c d e">
+                <p class="input-hint">Maximum 6 elements (for performance)</p>
+            </div>
+
+            <div id="partitionError" class="error-message"></div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="generatePartitions">
+                    <span>✦</span> Generate Partitions
+                </button>
+                <button class="btn btn-secondary hidden" id="downloadPartitions">
+                    <span>↓</span> Download
+                </button>
+            </div>
+
+            <div class="results-container" id="partitionResults">
+                <div class="results-header">
+                    <span class="results-title">All Partitions:</span>
+                    <span class="results-count" id="partitionCount">0 partitions</span>
+                </div>
+                <div class="result-block" id="partitionOutput"></div>
+            </div>
+        </section>
+
+        <!-- Section 2: Equivalence Class Generator -->
+        <section class="card" id="equivalenceCard">
+            <div class="card-header">
+                <h2 class="card-title">
+                    <span>∞</span>
+                    Equivalence Class Generator
+                    <span class="badge">Modulo n</span>
+                </h2>
+            </div>
+
+            <div class="input-group">
+                <label for="modInput">Divisor (n)</label>
+                <input type="number" id="modInput" placeholder="e.g., 3" min="1" value="3">
+            </div>
+
+            <div class="input-group">
+                <label>Range (optional)</label>
+                <div class="input-row">
+                    <input type="number" id="rangeStart" placeholder="Start" value="-20">
+                    <input type="number" id="rangeEnd" placeholder="End" value="20">
+                </div>
+                <p class="input-hint">Default range: -20 to 20</p>
+            </div>
+
+            <div id="equivalenceError" class="error-message"></div>
+
+            <div class="btn-group">
+                <button class="btn btn-primary" id="generateEquivalence">
+                    <span>∞</span> Generate Classes
+                </button>
+                <button class="btn btn-secondary hidden" id="downloadEquivalence">
+                    <span>↓</span> Download
+                </button>
+            </div>
+
+            <div class="results-container" id="equivalenceResults">
+                <div class="results-header">
+                    <span class="results-title">Equivalence Classes:</span>
+                    <span class="results-count" id="equivalenceCount">0 classes</span>
+                </div>
+                <div class="result-block" id="equivalenceOutput"></div>
+                <div class="math-notation" id="mathExplanation"></div>
+            </div>
+        </section>
+
+        <!-- Footer -->
+        <footer>
+            <p>Discrete Math Toolkit — Partition & Equivalence Relation Visualizer</p>
+        </footer>
+    </div>
+
+    <script>
+        /* ========================================
+           STATE MANAGEMENT
+           ======================================== */
+        const state = {
+            partitions: [],
+            equivalenceClasses: [],
+            lastPartitionInput: '',
+            lastEquivalenceInput: {}
+        };
+
+        /* ========================================
+           DOM ELEMENTS
+           ======================================== */
+        const elements = {
+            // Theme toggle
+            themeToggle: document.getElementById('themeToggle'),
+            
+            // Partition section
+            setInput: document.getElementById('setInput'),
+            generatePartitions: document.getElementById('generatePartitions'),
+            downloadPartitions: document.getElementById('downloadPartitions'),
+            partitionError: document.getElementById('partitionError'),
+            partitionResults: document.getElementById('partitionResults'),
+            partitionCount: document.getElementById('partitionCount'),
+            partitionOutput: document.getElementById('partitionOutput'),
+            
+            // Equivalence section
+            modInput: document.getElementById('modInput'),
+            rangeStart: document.getElementById('rangeStart'),
+            rangeEnd: document.getElementById('rangeEnd'),
+            generateEquivalence: document.getElementById('generateEquivalence'),
+            downloadEquivalence: document.getElementById('downloadEquivalence'),
+            equivalenceError: document.getElementById('equivalenceError'),
+            equivalenceResults: document.getElementById('equivalenceResults'),
+            equivalenceCount: document.getElementById('equivalenceCount'),
+            equivalenceOutput: document.getElementById('equivalenceOutput'),
+            mathExplanation: document.getElementById('mathExplanation')
+        };
+
+        /* ========================================
+           THEME TOGGLE FUNCTIONALITY
+           ======================================== */
+        function initTheme() {
+            const savedTheme = localStorage.getItem('theme') || 'dark';
+            document.body.setAttribute('data-theme', savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.body.getAttribute('data-theme');
+            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            document.body.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        /* ========================================
+           ERROR DISPLAY FUNCTIONS
+           ======================================== */
+        function showError(element, message) {
+            element.textContent = message;
+            element.classList.add('show');
+        }
+
+        function hideError(element) {
+            element.classList.remove('show');
+        }
+
+        /* ========================================
+           PARTITION ALGORITHM
+           ======================================== */
+        
+        /**
+         * Generates all possible partitions of a set using recursive algorithm.
+         * A partition is a way of dividing a set into non-empty disjoint subsets
+         * whose union is the original set.
+         * 
+         * Algorithm: Recursive approach based on adding elements to existing blocks
+         * or creating new singleton blocks.
+         * 
+         * @param {Array} set - Array of elements to partition
+         * @returns {Array} - Array of all possible partitions
+         */
+        function generatePartitions(set) {
+            // Base case: empty set has one partition (empty partition)
+            if (set.length === 0) {
+                return [[]];
+            }
+            
+            // Base case: single element has one partition (singleton)
+            if (set.length === 1) {
+                return [[[set[0]]]];
+            }
+            
+            const first = set[0];
+            const rest = set.slice(1);
+            
+            // Get all partitions of the rest of the set
+            const partitionsOfRest = generatePartitions(rest);
+            
+            const result = [];
+            
+            // For each partition of the rest
+            for (const partition of partitionsOfRest) {
+                // Option 1: Add first element as a new singleton block
+                const singletonPartition = [[first], ...partition];
+                result.push(singletonPartition);
+                
+                // Option 2: Add first element to each existing block
+                for (let i = 0; i < partition.length; i++) {
+                    const newBlock = [first, ...partition[i]];
+                    const newPartition = [
+                        ...partition.slice(0, i),
+                        newBlock,
+                        ...partition.slice(i + 1)
+                    ];
+                    result.push(newPartition);
+                }
+            }
+            
+            return result;
+        }
+
+        /**
+         * Calculate Bell number for n elements (number of partitions)
+         * Uses recursive formula: B(n+1) = sum of (C(n, k) * B(k)) for k=0 to n
+         * 
+         * @param {number} n - Number of elements
+         * @returns {number} - Bell number
+         */
+        function bellNumber(n) {
+            if (n === 0) return 1;
+            if (n === 1) return 1;
+            
+            // Using Dobinski's formula approximation for small n
+            // Or direct calculation for small numbers
+            const bell = [1, 1];
+            for (let i = 2; i <= n; i++) {
+                bell[i] = 0;
+                for (let j = 0; j < i; j++) {
+                    bell[i] += binomial(i - 1, j) * bell[j];
+                }
+            }
+            return bell[n];
+        }
+
+        /**
+         * Calculate binomial coefficient C(n, k)
+         * 
+         * @param {number} n - Total items
+         * @param {number} k - Items to choose
+         * @returns {number} - Binomial coefficient
+         */
+        function binomial(n, k) {
+            if (k < 0 || k > n) return 0;
+            if (k === 0 || k === n) return 1;
+            if (k > n - k) k = n - k;
+            
+            let result = 1;
+            for (let i = 0; i < k; i++) {
+                result = result * (n - i) / (i + 1);
+            }
+            return Math.round(result);
+        }
+
+        /**
+         * Format a partition for display
+         * 
+         * @param {Array} partition - A single partition
+         * @returns {string} - Formatted partition string
+         */
+        function formatPartition(partition) {
+            return partition.map(block => `{${block.join(', ')}}`).join(' ∪ ');
+        }
+
+        /**
+         * Render partition results to DOM
+         * 
+         * @param {Array} partitions - Array of all partitions
+         */
+        function renderPartitions(partitions) {
+            state.partitions = partitions;
+            
+            // Update count
+            elements.partitionCount.textContent = `${partitions.length} partitions`;
+            
+            // Render each partition
+            const html = partitions.map((partition, index) => {
+                const blocks = partition.map(block => 
+                    `<span class="partition-block">{${block.join(', ')}}</span>`
+                ).join(' &nbsp;');
+                return `<div>${index + 1}. ${blocks}</div>`;
+            }).join('');
+            
+            elements.partitionOutput.innerHTML = html;
+            elements.partitionResults.classList.add('show');
+            elements.downloadPartitions.classList.remove('hidden');
+        }
+
+        /* ========================================
+           EQUIVALENCE CLASS ALGORITHM
+           ======================================== */
+        
+        /**
+         * Generate equivalence classes based on relation aRb iff n divides (a - b)
+         * This is equivalent to grouping by a mod n
+         * 
+         * @param {number} n - The divisor
+         * @param {number} start - Start of range
+         * @param {number} end - End of range
+         * @returns {Object} - Object with remainder as key and array of numbers as value
+         */
+        function generateEquivalenceClasses(n, start, end) {
+            const classes = {};
+            
+            // Initialize classes for each possible remainder
+            for (let i = 0; i < n; i++) {
+                classes[i] = [];
+            }
+            
+            // Group each number by its remainder
+            for (let num = start; num <= end; num++) {
+                // JavaScript's % operator can return negative values for negative numbers
+                // We need to fix this to get proper modulo
+                const remainder = ((num % n) + n) % n;
+                classes[remainder].push(num);
+            }
+            
+            return classes;
+        }
+
+        /**
+         * Render equivalence class results to DOM
+         * 
+         * @param {number} n - The divisor
+         * @param {Object} classes - Object with equivalence classes
+         */
+        function renderEquivalenceClasses(n, classes) {
+            state.equivalenceClasses = classes;
+            state.lastEquivalenceInput = { n, start: parseInt(elements.rangeStart.value), end: parseInt(elements.rangeEnd.value) };
+            
+            // Update count
+            const classCount = Object.keys(classes).length;
+            elements.equivalenceCount.textContent = `${classCount} classes`;
+            
+            // Render each class
+            const html = Object.entries(classes)
+                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                .map(([remainder, members], index) => {
+                    const classNum = index % 6; // For color coding
+                    const membersHtml = members
+                        .sort((a, b) => a - b)
+                        .map(m => `<span class="member">${m}</span>`)
+                        .join('');
+                    
+                    return `
+                        <div class="equivalence-class eq-class eq-class-${classNum}">
+                            <span class="class-label">[${remainder}]</span>
+                            <span class="class-members">${membersHtml}</span>
+                        </div>
+                    `;
+                }).join('');
+            
+            elements.equivalenceOutput.innerHTML = html;
+            
+            // Add mathematical explanation
+            elements.mathExplanation.innerHTML = `
+                <strong>Mathematical Definition:</strong><br>
+                Relation R: aRb ⟺ n divides (a - b)<br>
+                Equivalence class [k] = { x ∈ ℤ | x ≡ k (mod ${n}) }
+            `;
+            
+            elements.equivalenceResults.classList.add('show');
+            elements.downloadEquivalence.classList.remove('hidden');
+        }
+
+        /* ========================================
+           DOWNLOAD FUNCTIONALITY
+           ======================================== */
+        
+        /**
+         * Download partition results as text file
+         */
+        function downloadPartitionsAsText() {
+            const input = elements.setInput.value;
+            const partitions = state.partitions;
+            
+            let content = `Discrete Math Toolkit - Partition Results\n`;
+            content += `============================================\n\n`;
+            content += `Input Set: {${input}}\n`;
+            content += `Number of Elements: ${input.split(' ').filter(e => e.trim()).length}\n`;
+            content += `Total Partitions (Bell Number): ${partitions.length}\n\n`;
+            content += `All Partitions:\n`;
+            content += `----------------\n`;
+            
+            partitions.forEach((partition, index) => {
+                content += `${index + 1}. ${formatPartition(partition)}\n`;
+            });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'partitions_result.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /**
+         * Download equivalence class results as text file
+         */
+        function downloadEquivalenceAsText() {
+            const { n, start, end } = state.lastEquivalenceInput;
+            const classes = state.equivalenceClasses;
+            
+            let content = `Discrete Math Toolkit - Equivalence Class Results\n`;
+            content += `======================================================\n\n`;
+            content += `Divisor (n): ${n}\n`;
+            content += `Range: ${start} to ${end}\n`;
+            content += `Relation: aRb ⟺ ${n} divides (a - b)\n\n`;
+            content += `Equivalence Classes:\n`;
+            content += `--------------------\n`;
+            
+            Object.entries(classes)
+                .sort((a, b) => parseInt(a[0]) - parseInt(b[0]))
+                .forEach(([remainder, members]) => {
+                    const sortedMembers = members.sort((a, b) => a - b).join(', ');
+                    content += `[${remainder}] = { ${sortedMembers} }\n`;
+                });
+            
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'equivalence_classes_result.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        /* ========================================
+           EVENT HANDLERS
+           ======================================== */
+        
+        /**
+         * Handle partition generation
+         */
+        function handleGeneratePartitions() {
+            hideError(elements.partitionError);
+            
+            const input = elements.setInput.value.trim();
+            
+            // Validation
+            if (!input) {
+                showError(elements.partitionError, 'Please enter elements separated by space');
+                return;
+            }
+            
+            const elementsArray = input.split(/\s+/).filter(e => e.trim());
+            
+            if (elementsArray.length === 0) {
+                showError(elements.partitionError, 'Please enter at least one element');
+                return;
+            }
+            
+            if (elementsArray.length > 6) {
+                showError(elements.partitionError, 'Maximum 6 elements allowed (for performance reasons)');
+                return;
+            }
+            
+            // Check for duplicates
+            const uniqueElements = new Set(elementsArray);
+            if (uniqueElements.size !== elementsArray.length) {
+                showError(elements.partitionError, 'Duplicate elements are not allowed');
+                return;
+            }
+            
+            // Generate partitions
+            const partitions = generatePartitions(elementsArray);
+            state.lastPartitionInput = input;
+            
+            // Render results
+            renderPartitions(partitions);
+        }
+
+        /**
+         * Handle equivalence class generation
+         */
+        function handleGenerateEquivalence() {
+            hideError(elements.equivalenceError);
+            
+            const n = parseInt(elements.modInput.value);
+            const start = parseInt(elements.rangeStart.value) || -20;
+            const end = parseInt(elements.rangeEnd.value) || 20;
+            
+            // Validation
+            if (isNaN(n) || n <= 0) {
+                showError(elements.equivalenceError, 'Please enter a valid positive integer for divisor (n)');
+                return;
+            }
+            
+            if (isNaN(start) || isNaN(end)) {
+                showError(elements.equivalenceError, 'Please enter valid numbers for range');
+                return;
+            }
+            
+            if (start >= end) {
+                showError(elements.equivalenceError, 'Start value must be less than end value');
+                return;
+            }
+            
+            // Limit range to prevent performance issues
+            const rangeSize = end - start + 1;
+            if (rangeSize > 1000) {
+                showError(elements.equivalenceError, 'Range too large. Please use a range smaller than 1000 numbers');
+                return;
+            }
+            
+            // Generate equivalence classes
+            const classes = generateEquivalenceClasses(n, start, end);
+            
+            // Render results
+            renderEquivalenceClasses(n, classes);
+        }
+
+        /* ========================================
+           INITIALIZATION
+           ======================================== */
+        
+        function init() {
+            // Initialize theme
+            initTheme();
+            
+            // Event listeners
+            elements.themeToggle.addEventListener('click', toggleTheme);
+            
+            // Partition events
+            elements.generatePartitions.addEventListener('click', handleGeneratePartitions);
+            elements.downloadPartitions.addEventListener('click', downloadPartitionsAsText);
+            elements.setInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGeneratePartitions();
+            });
+            
+            // Equivalence events
+            elements.generateEquivalence.addEventListener('click', handleGenerateEquivalence);
+            elements.downloadEquivalence.addEventListener('click', downloadEquivalenceAsText);
+            
+            // Auto-generate on input for divisor field
+            elements.modInput.addEventListener('input', function() {
+                // Only generate if there's a valid number
+                const n = parseInt(elements.modInput.value);
+                if (!isNaN(n) && n > 0) {
+                    handleGenerateEquivalence();
+                }
+            });
+            
+            elements.rangeStart.addEventListener('input', function() {
+                const n = parseInt(elements.modInput.value);
+                const start = parseInt(elements.rangeStart.value);
+                const end = parseInt(elements.rangeEnd.value);
+                if (!isNaN(n) && n > 0 && !isNaN(start) && !isNaN(end)) {
+                    handleGenerateEquivalence();
+                }
+            });
+            
+            elements.rangeEnd.addEventListener('input', function() {
+                const n = parseInt(elements.modInput.value);
+                const start = parseInt(elements.rangeStart.value);
+                const end = parseInt(elements.rangeEnd.value);
+                if (!isNaN(n) && n > 0 && !isNaN(start) && !isNaN(end)) {
+                    handleGenerateEquivalence();
+                }
+            });
+            
+            elements.modInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGenerateEquivalence();
+            });
+            elements.rangeStart.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGenerateEquivalence();
+            });
+            elements.rangeEnd.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') handleGenerateEquivalence();
+            });
+        }
+
+        // Run initialization when DOM is ready
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
+
